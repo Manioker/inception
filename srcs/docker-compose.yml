@@ -1,0 +1,57 @@
+version: "3.8"
+
+services:
+  mariadb:
+    container_name: mariadb
+    build:
+      context: requirements/MariaDB
+      dockerfile: Dockerfile
+    env_file:
+      - .env
+    environment:
+      - SQL_DATABASE
+      - SQL_USER
+      - SQL_PASSWORD
+      - SQL_ROOT_PASSWORD
+    volumes:
+      - mariadb:/var/lib/mysql
+    restart: unless-stopped
+    expose:
+      - "3306"
+
+  wordpress:
+    container_name: wordpress
+    build:
+      context: requirements/WordPress
+      dockerfile: Dockerfile
+    depends_on:
+      - mariadb
+    env_file:
+      - .env
+    environment:
+      - WORDPRESS_DB_HOST=mariadb:3306
+      - WORDPRESS_DB_NAME=${SQL_DATABASE}
+      - WORDPRESS_DB_USER=${SQL_USER}
+      - WORDPRESS_DB_PASSWORD=${SQL_PASSWORD}
+    volumes:
+      - wordpress:/var/www/html
+    restart: unless-stopped
+    expose:
+      - "9000"
+
+  nginx:
+    container_name: nginx
+    build:
+      context: requirements/NGINX
+      dockerfile: Dockerfile
+    depends_on:
+      - wordpress
+    volumes:
+      - wordpress:/var/www/html:ro
+    ports:
+      - "443:443"
+    restart: unless-stopped
+
+volumes:
+  mariadb:
+  wordpress:
